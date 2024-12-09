@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asteroid Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background-color: black;
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      color: white;
+    }
+
+    #startScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+    }
+
+    #startScreen h1 {
+      font-size: 80px;
+      font-family: 'Star Wars', sans-serif;
+      letter-spacing: 4px;
+    }
+
+    #startButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 20px;
+      color: white;
+      background-color: blue;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #loseScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: red;
+      display: none; /* Initially hidden */
+      background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
+      padding: 50px;
+      border-radius: 10px;
+    }
+
+    #loseScreen h1 {
+      font-size: 80px;
+      font-family: 'Star Wars', sans-serif;
+      letter-spacing: 4px;
+    }
+
+    /* Star Wars font from Google Fonts */
+    @font-face {
+      font-family: 'Star Wars';
+      src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+
+  <!-- Title screen -->
+  <div id="startScreen">
+    <h1>ASTEROID</h1>
+    <button id="startButton">Start Game</button>
+  </div>
+
+  <!-- Losing screen -->
+  <div id="loseScreen">
+    <h1>YOU LOSE</h1>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <audio id="collisionSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+  <audio id="speedUpSound" src="https://www.soundjay.com/button/beep-09.wav" preload="auto"></audio>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const startScreen = document.getElementById('startScreen');
+    const loseScreen = document.getElementById('loseScreen');
+    const startButton = document.getElementById('startButton');
+    const collisionSound = document.getElementById('collisionSound');
+    const speedUpSound = document.getElementById('speedUpSound');
+
+    // Set canvas size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Game variables
+    let score = 0;
+    let gameOver = false;
+    let asteroidSpeed = 2; // Base speed of asteroids
+    const asteroidSpawnRate = 50; // Higher value = slower spawns
+    const asteroids = [];
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      width: 20,
+      height: 20,
+      speed: 7,
+      dx: 0,
+      dy: 0,
+    };
+    let frameCount = 0;
+
+    // Controls
+    document.addEventListener('keydown', keyDown);
+    document.addEventListener('keyup', keyUp);
+
+    function keyDown(e) {
+      if (e.key === 'ArrowRight') player.dx = player.speed;
+      if (e.key === 'ArrowLeft') player.dx = -player.speed;
+      if (e.key === 'ArrowUp') player.dy = -player.speed;
+      if (e.key === 'ArrowDown') player.dy = player.speed;
+    }
+
+    function keyUp(e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') player.dx = 0;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') player.dy = 0;
+    }
+
+    // Update player position
+    function movePlayer() {
+      player.x += player.dx;
+      player.y += player.dy;
+
+      // Prevent player from moving off canvas
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      if (player.y < 0) player.y = 0;
+      if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+    }
+
+    // Draw player (spaceship)
+    function drawPlayer() {
+      ctx.fillStyle = 'cyan';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    // Spawn asteroids from random edges
+    function spawnAsteroid() {
+      const size = Math.random() * 30 + 10; // Random size between 10 and 40
+      let x, y, dx, dy;
+
+      // Determine spawn location (random edge)
+      const edge = Math.floor(Math.random() * 4);
+      switch (edge) {
+        case 0: x = Math.random() * canvas.width; y = -size; break; // Top
+        case 1: x = canvas.width + size; y = Math.random() * canvas.height; break; // Right
+        case 2: x = Math.random() * canvas.width; y = canvas.height + size; break; // Bottom
+        case 3: x = -size; y = Math.random() * canvas.height; break; // Left
+      }
+
+      const angle = Math.atan2(player.y - y, player.x - x);
+      dx = asteroidSpeed * Math.cos(angle);
+      dy = asteroidSpeed * Math.sin(angle);
+
+      asteroids.push({ x, y, width: size, height: size, dx, dy });
+    }
+
+    // Move and draw asteroids
+    function moveAsteroids() {
+      for (let i = 0; i < asteroids.length; i++) {
+        asteroids[i].x += asteroids[i].dx;
+        asteroids[i].y += asteroids[i].dy;
+
+        if (asteroids[i].x < -asteroids[i].width || asteroids[i].x > canvas.width + asteroids[i].width ||
+            asteroids[i].y < -asteroids[i].height || asteroids[i].y > canvas.height + asteroids[i].height) {
+          asteroids.splice(i, 1);
+          score++;
+          scoreElement.textContent = `Score: ${score}`;
+        }
+      }
+
+      ctx.fillStyle = 'red';
+      asteroids.forEach((asteroid) => ctx.fillRect(asteroid.x, asteroid.y, asteroid.width, asteroid.height));
+    }
+
+    // Detect collisions
+    function detectCollisions() {
+      // Check for collision with asteroids
+      asteroids.forEach((asteroid) => {
+        if (player.x < asteroid.x + asteroid.width && player.x + player.width > asteroid.x &&
+            player.y < asteroid.y + asteroid.height && player.y + player.height > asteroid.y) {
+          collisionSound.play(); // Play collision sound
+          gameOver = true;
+        }
+      });
+    }
+
+    // Increase asteroid speed every 5 seconds
+    function increaseAsteroidSpeed() {
+      setInterval(() => {
+        asteroidSpeed += 0.5;
+        speedUpSound.play(); // Play speed-up sound
+      }, 5000);
+    }
+
+    // Display "YOU LOSE" screen
+    function showLoseScreen() {
+      loseScreen.style.display = 'block'; // Show lose screen
+      setTimeout(() => {
+        loseScreen.style.display = 'none'; // Hide after 3 seconds
+      }, 3000);
+    }
+
+    // Game loop
+    function gameLoop() {
+      if (gameOver) {
+        showLoseScreen(); // Show lose screen
+        setTimeout(() => {
+          document.location.reload(); // Reload the page after showing the losing screen
+        }, 3000);
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      movePlayer();
+      drawPlayer();
+      moveAsteroids();
+      detectCollisions();
+
+      if (frameCount % asteroidSpawnRate === 0) spawnAsteroid();
+
+      frameCount++;
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game after user interaction
+    startButton.addEventListener('click', () => {
+      startScreen.style.display = 'none'; // Hide start screen
+      increaseAsteroidSpeed();
+      collisionSound.play(); // Preload sounds
+      gameLoop();
+    });
+  </script>
+</body>
+</html>
