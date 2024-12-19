@@ -27,6 +27,28 @@
       color: white;
     }
 
+    #menu {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    #homeButton {
+      text-decoration: none;
+      color: white;
+      background-color: blue;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+
+    #homeButton:hover {
+      background-color: darkblue;
+    }
+
     #startScreen {
       position: absolute;
       top: 50%;
@@ -60,8 +82,8 @@
       transform: translate(-50%, -50%);
       text-align: center;
       color: red;
-      display: none; /* Initially hidden */
-      background-color: rgba(0, 0, 0, 0.7); /* Dark semi-transparent background */
+      display: none;
+      background-color: rgba(0, 0, 0, 0.7);
       padding: 50px;
       border-radius: 10px;
     }
@@ -72,7 +94,6 @@
       letter-spacing: 4px;
     }
 
-    /* Star Wars font from Google Fonts */
     @font-face {
       font-family: 'Star Wars';
       src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -81,6 +102,11 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
+
+  <!-- Menu -->
+  <div id="menu">
+    <a href="../index.html" id="homeButton">Home</a>
+  </div>
 
   <!-- Title screen -->
   <div id="startScreen">
@@ -108,15 +134,13 @@
     const collisionSound = document.getElementById('collisionSound');
     const speedUpSound = document.getElementById('speedUpSound');
 
-    // Set canvas size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Game variables
     let score = 0;
     let gameOver = false;
-    let asteroidSpeed = 2; // Base speed of asteroids
-    const asteroidSpawnRate = 50; // Higher value = slower spawns
+    let asteroidSpeed = 2;
+    const asteroidSpawnRate = 50;
     const asteroids = [];
     const player = {
       x: canvas.width / 2,
@@ -129,7 +153,6 @@
     };
     let frameCount = 0;
 
-    // Controls
     document.addEventListener('keydown', keyDown);
     document.addEventListener('keyup', keyUp);
 
@@ -145,36 +168,31 @@
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') player.dy = 0;
     }
 
-    // Update player position
     function movePlayer() {
       player.x += player.dx;
       player.y += player.dy;
 
-      // Prevent player from moving off canvas
       if (player.x < 0) player.x = 0;
       if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
       if (player.y < 0) player.y = 0;
       if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
     }
 
-    // Draw player (spaceship)
     function drawPlayer() {
       ctx.fillStyle = 'cyan';
       ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
-    // Spawn asteroids from random edges
     function spawnAsteroid() {
-      const size = Math.random() * 30 + 10; // Random size between 10 and 40
+      const size = Math.random() * 30 + 10;
       let x, y, dx, dy;
 
-      // Determine spawn location (random edge)
       const edge = Math.floor(Math.random() * 4);
       switch (edge) {
-        case 0: x = Math.random() * canvas.width; y = -size; break; // Top
-        case 1: x = canvas.width + size; y = Math.random() * canvas.height; break; // Right
-        case 2: x = Math.random() * canvas.width; y = canvas.height + size; break; // Bottom
-        case 3: x = -size; y = Math.random() * canvas.height; break; // Left
+        case 0: x = Math.random() * canvas.width; y = -size; break;
+        case 1: x = canvas.width + size; y = Math.random() * canvas.height; break;
+        case 2: x = Math.random() * canvas.width; y = canvas.height + size; break;
+        case 3: x = -size; y = Math.random() * canvas.height; break;
       }
 
       const angle = Math.atan2(player.y - y, player.x - x);
@@ -184,7 +202,6 @@
       asteroids.push({ x, y, width: size, height: size, dx, dy });
     }
 
-    // Move and draw asteroids
     function moveAsteroids() {
       for (let i = 0; i < asteroids.length; i++) {
         asteroids[i].x += asteroids[i].dx;
@@ -202,40 +219,35 @@
       asteroids.forEach((asteroid) => ctx.fillRect(asteroid.x, asteroid.y, asteroid.width, asteroid.height));
     }
 
-    // Detect collisions
     function detectCollisions() {
-      // Check for collision with asteroids
       asteroids.forEach((asteroid) => {
         if (player.x < asteroid.x + asteroid.width && player.x + player.width > asteroid.x &&
             player.y < asteroid.y + asteroid.height && player.y + player.height > asteroid.y) {
-          collisionSound.play(); // Play collision sound
+          collisionSound.play();
           gameOver = true;
         }
       });
     }
 
-    // Increase asteroid speed every 5 seconds
     function increaseAsteroidSpeed() {
       setInterval(() => {
         asteroidSpeed += 0.5;
-        speedUpSound.play(); // Play speed-up sound
+        speedUpSound.play();
       }, 5000);
     }
 
-    // Display "YOU LOSE" screen
     function showLoseScreen() {
-      loseScreen.style.display = 'block'; // Show lose screen
+      loseScreen.style.display = 'block';
       setTimeout(() => {
-        loseScreen.style.display = 'none'; // Hide after 3 seconds
+        loseScreen.style.display = 'none';
       }, 3000);
     }
 
-    // Game loop
     function gameLoop() {
       if (gameOver) {
-        showLoseScreen(); // Show lose screen
+        showLoseScreen();
         setTimeout(() => {
-          document.location.reload(); // Reload the page after showing the losing screen
+          document.location.reload();
         }, 3000);
         return;
       }
@@ -252,11 +264,10 @@
       requestAnimationFrame(gameLoop);
     }
 
-    // Start the game after user interaction
     startButton.addEventListener('click', () => {
-      startScreen.style.display = 'none'; // Hide start screen
+      startScreen.style.display = 'none';
       increaseAsteroidSpeed();
-      collisionSound.play(); // Preload sounds
+      collisionSound.play();
       gameLoop();
     });
   </script>
